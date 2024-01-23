@@ -13,6 +13,10 @@ import { Message, SendFileResult, SendStickerResult } from '../model';
 import { ChatState } from '../model/enum';
 import { ListenerLayer } from './listener.layer';
 import { Scope, checkValuesSender } from '../helpers/layers-interface';
+import {
+  readMetaFromResponse,
+  readResponseFromUrl
+} from '../helpers/dowload-meta';
 
 let obj: Scope;
 
@@ -427,13 +431,12 @@ export class SenderLayer extends ListenerLayer {
    * Automatically sends a link with the auto generated link preview. You can also add a custom message to be added.
    * @param chatId chat id: xxxxx@us.c
    * @param url string A link, for example for youtube. e.g https://www.youtube.com/watch?v=Zi_XLOBDo_Y&list=RDEMe12_MlgO8mGFdeeftZ2nOQ&start_radio=1
-   * @param title custom text as the message body, this includes the link or will be attached after the link
+   * @param message custom text as the message body, this includes the link or will be attached after the link
    */
   public async sendLinkPreview(
     chatId: string,
     url: string,
-    title: string,
-    message: string,
+    message: string
   ): Promise<object> {
     return new Promise(async (resolve, reject) => {
       const typeFunction = 'sendLinkPreview';
@@ -454,13 +457,6 @@ export class SenderLayer extends ListenerLayer {
           isUser: true
         },
         {
-          param: 'title',
-          type: type,
-          value: title,
-          function: typeFunction,
-          isUser: false
-        },
-        {
           param: 'message',
           type: type,
           value: message,
@@ -468,16 +464,63 @@ export class SenderLayer extends ListenerLayer {
           isUser: false
         }
       ];
+
       const validating = checkValuesSender(check);
       if (typeof validating === 'object') {
         return reject(validating);
       }
-      const thumbnail = await dowloadMetaFileBase64(url);
-      const result = await this.page.evaluate(
-        ({ chatId, url, title, message, thumbnail }) => {
-          return WAPI.sendLinkPreview(chatId, url, title, message, thumbnail);
+      const urlResponse = await readResponseFromUrl(url);
+      const og_image = await readMetaFromResponse(urlResponse, 'og:image');
+      const thumbnailB64 = await dowloadMetaFileBase64(url);
+      const mediaBlob = await downloadFileToBase64(og_image);
+
+      if (mediaBlob === false) {
+        console.log(`cant downloadFileToBase64 ${og_image}`);
+        return;
+      }
+
+      const image = await this.page.evaluate(
+        ({ mediaBlob }) => {
+          const fileBlob = WAPI.base64ToFile(mediaBlob, 'image.jpeg');
+
+          // console.log('mediaBlob', mediaBlob);
+          // console.log('fileBlob', fileBlob);
+
+          return WAPI.encryptAndUploadFile('thumbnail-link', fileBlob);
         },
-        { chatId, url, title, message, thumbnail }
+        { mediaBlob }
+      );
+
+      // console.log('encryptAndUploadFile response', image);
+
+      const thumbnail = {
+        b64: thumbnailB64,
+        directPath: image.directPath,
+        encSha256: image.uploadhash,
+        sha256: image.filehash,
+        mediaKey: image.mediaKey,
+        mediaKeyTimestamp: image.mediaKeyTimestamp
+      };
+
+      const og_url = await readMetaFromResponse(urlResponse, 'og:url');
+      const og_title = await readMetaFromResponse(urlResponse, 'og:title');
+      const og_description = await readMetaFromResponse(
+        urlResponse,
+        'og:description'
+      );
+
+      const result = await this.page.evaluate(
+        ({ chatId, og_url, og_title, og_description, message, thumbnail }) => {
+          return WAPI.sendLinkPreview(
+            chatId,
+            og_url,
+            og_title,
+            og_description,
+            message,
+            thumbnail
+          );
+        },
+        { chatId, og_url, og_title, og_description, message, thumbnail }
       );
       if (result['erro'] == true) {
         return reject(result);

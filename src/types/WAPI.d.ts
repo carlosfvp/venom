@@ -164,9 +164,12 @@ interface WAPI {
     chatId: string,
     url: string,
     title: string,
-    message: string,
-    thumbnail: string
+    description: string,
+    body: string,
+    thumbnail: any
   ) => Promise<SendLinkResult>;
+  encryptAndUploadFile: (type: string, blob: File) => Promise<any>;
+  base64ToFile: (b64: string, filename: string) => File;
   sendLocation: (
     to: string,
     latitude: string,

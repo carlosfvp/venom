@@ -5,7 +5,7 @@
  * @param {string} options object aditionais
  */
 export async function sendMessageOptions(chatId, content, options = {}) {
-  const chat = Store.Chat.get(chatId);
+  const chat = await WAPI.sendExist(chatId);
   let attOptions = {};
   if (options.attachment) {
     attOptions = await WWebJS.processMediaData(
@@ -101,7 +101,7 @@ export async function sendMessageOptions(chatId, content, options = {}) {
       options = { ...options, ...preview };
     }
   }
-  const newMsgId = await window.WAPI.getNewMessageId(chat.id);
+  const newMsgId = await window.WAPI.getNewMessageId(chatId);
   const fromwWid = await Store.MaybeMeUser.getMaybeMeUser();
   const message = {
     ...options,

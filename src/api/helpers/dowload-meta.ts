@@ -2,6 +2,36 @@ import { load } from 'cheerio';
 import axios, { AxiosResponse } from 'axios';
 import { Buffer } from 'buffer';
 
+export async function readResponseFromUrl(url: string): Promise<string> {
+  try {
+    const response: AxiosResponse<string> = await axios(url);
+    const htmlContent: string = response.data;
+    return htmlContent;
+  } catch (e) {
+    console.log(`Error getting response ${url}`, e);
+    return '';
+  }
+}
+
+export async function readMetaFromResponse(
+  htmlContent: string,
+  tag: string
+): Promise<string> {
+  try {
+    const $ = load(htmlContent);
+    let value = '';
+
+    $(`meta[property="${tag}"]`).each((index, element) => {
+      value = $(element).attr('content');
+    });
+
+    return value;
+  } catch (e) {
+    console.log(`Error meta tag ${tag}`, e);
+    return '';
+  }
+}
+
 export async function dowloadMetaFileBase64(url: string): Promise<string> {
   const backImage =
     'iVBORw0KGgoAAAANSUhEUgAAAGMAAABjCAIAAAAAWSnCAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAA0SURBVHhe7cExAQAAAMKg9U9tCj8gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADipAXM+AAFcstx4AAAAAElFTkSuQmCC';

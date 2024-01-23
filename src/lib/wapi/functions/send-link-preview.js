@@ -1,5 +1,11 @@
-export async function sendLinkPreview(chatId, url, text, body, thumbnail) {
-  text = text || '';
+export async function sendLinkPreview(
+  chatId,
+  url,
+  title,
+  description,
+  body,
+  thumbnail
+) {
   const _Path = {
     Protocol: '^(https?:\\/\\/)?',
     Domain: '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|',
@@ -27,7 +33,7 @@ export async function sendLinkPreview(chatId, url, text, body, thumbnail) {
 
   var chat = await WAPI.sendExist(chatId);
   if (!chat.erro) {
-    const newMsgId = await window.WAPI.getNewMessageId(chat.id._serialized);
+    const newMsgId = await window.WAPI.getNewMessageId(chatId);
     const fromwWid = await Store.MaybeMeUser.getMaybeMeUser();
     let inChat = await WAPI.getchatId(chat.id).catch(() => {});
     if (inChat) {
@@ -39,28 +45,38 @@ export async function sendLinkPreview(chatId, url, text, body, thumbnail) {
       id: newMsgId,
       links: link,
       ack: 0,
-      body: body.includes(url) ? body : url + "\n" + body,
+      body: body,
       from: fromwWid,
       to: chat.id,
-      local: !0,
+      local: true,
       self: 'out',
       t: parseInt(new Date().getTime() / 1000),
-      isNewMsg: !0,
+      isNewMsg: true,
       type: 'chat',
       subtype: 'url',
-      preview: true,
+      previewType: 0,
+      richPreviewType: 0,
+      //preview: true,
       disappearingModeInitiator: 'chat',
-      thumbnail: thumbnail,
-      content: url,
+      mediaKey: thumbnail.mediaKey,
+      mediaKeyTimestamp: thumbnail.mediaKeyTimestamp,
+      thumbnail: thumbnail.b64,
+      thumbnailHQ: thumbnail.b64,
+      thumbnailDirectPath: thumbnail.directPath,
+      thumbnailEncSha256: thumbnail.encSha256,
+      thumbnailSha256: thumbnail.sha256,
+      thumbnailHeight: 400,
+      thumbnailWidth: 400,
+      content: 'content',
       canonicalUrl: url,
-      description: url,
+      description: description,
       matchedText: url,
-      title: text
+      title: title
     };
     const result = (
       await Promise.all(window.Store.addAndSendMsgToChat(chat, message))
     )[1];
-    let m = { type: 'LinkPreview', url: url, text: text };
+    let m = { type: 'LinkPreview', url: url, text: title };
     if (
       result === 'success' ||
       result === 'OK' ||
