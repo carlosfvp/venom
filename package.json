@@ -71,6 +71,7 @@
   "files": [
     ".env",
     "dist/*",
+    "src",
     "dist",
     "package.json",
     "CHANGELOG.md",

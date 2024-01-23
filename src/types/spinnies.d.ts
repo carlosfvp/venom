@@ -1,4 +1,4 @@
-declare module 'spinnies' {
+declare module 'spinnies2' {
   namespace Spinnies {
     type StopAllStatus = 'succeed' | 'fail' | 'stopped';
     type SpinnerStatus = StopAllStatus | 'spinning' | 'non-spinnable';
